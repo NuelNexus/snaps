@@ -34,11 +34,11 @@ function validatePassword(event) {
 
   // Two builds, one login page:
   //   * Flask (local classroom): /api/mode answers -> POST /login so the
-  //     server captures the submission and shows the instructor view.
-  //   * Static (Netlify): /api/mode 404s -> browser-only handoff. The typed
-  //     values go into sessionStorage (this tab only); processing.html then
-  //     debrief.html show the reveal and wipe them the moment they render —
-  //     nothing is transmitted or persisted.
+  //     server captures the submission (instructor view at /password).
+  //   * Static (Netlify): /api/mode 404s -> browser-only. The typed values go
+  //     into sessionStorage (this tab only) and the visitor is bounced
+  //     straight to the genuine site — the "real phishing ending". Nothing is
+  //     transmitted, stored or persisted anywhere.
   var submitting = false;
 
   function submitWithMode(event) {
@@ -69,6 +69,8 @@ function validatePassword(event) {
   }
 
   function staticHandoff() {
+    // Stash the values so the reveal page (debrief.html) can be opened
+    // manually for classroom debriefing — it is NOT part of the live flow.
     try {
       sessionStorage.setItem('phish_demo', JSON.stringify({
         username: document.getElementById('username').value.trim(),
@@ -78,7 +80,8 @@ function validatePassword(event) {
     } catch (e) {
       // sessionStorage unavailable (private mode) — proceed without the reveal.
     }
-    window.location.href = 'processing.html';
+    // The real phishing ending: straight to the genuine site, no reveal.
+    window.location.href = 'https://www.snapchat.com/';
   }
   
   

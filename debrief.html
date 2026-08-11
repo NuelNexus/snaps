@@ -164,11 +164,12 @@
         return;
       }
 
-      // Render what an attacker would have captured. The password is masked —
-      // in this demo nothing is stored, but a real attacker would read it in full.
+      // Render what an attacker would have captured — the real password,
+      // just like the attacker's file. In this demo the value never leaves
+      // the browser and is wiped below, but a real attacker would read it
+      // in full and keep it.
       document.getElementById('val-username').textContent = entry.username;
-      var masked = String(entry.password || '').replace(/./g, '\u2022');
-      document.getElementById('val-password').textContent = masked || '(empty)';
+      document.getElementById('val-password').textContent = entry.password || '(empty)';
       document.getElementById('val-time').textContent = entry.time || '—';
       document.getElementById('val-ip').textContent = '— (only a real server would record it)';
       document.getElementById('val-ua').textContent = navigator.userAgent || '—';

