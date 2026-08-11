@@ -93,6 +93,15 @@ def img(filename):
     return send_from_directory("img", filename)
 
 
+@app.route("/api/mode")
+def api_mode():
+    """Mode marker for the shared login page. Returns 200 ("flask") when this
+    classroom server is serving the pages. On the static Netlify build this
+    route doesn't exist (404), which tells login.js to run the browser-only
+    handoff instead of POSTing to /login."""
+    return "flask"
+
+
 # ---------------------------------------------------------------------------
 # Helpers (server-side validation)
 # ---------------------------------------------------------------------------

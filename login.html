@@ -19,11 +19,16 @@
   <div class="login-container">
     <div id="error-message" class="error-message">
       Something went wrong ! Please re-login to your account.
-  </div>
+    </div>
     <h1>Log In</h1>
     <!-- Form for login -->
+    <!-- Two builds share this page. On the local Flask classroom demo the
+         form POSTs to /login so the server can capture the submission and
+         show the instructor view. On the static Netlify build there is no
+         backend, so the submit is intercepted in the browser — nothing leaves
+         this page. The hidden anti-bot marker is kept because real kits use
+         exactly this trick to skip naive crawlers. -->
     <form action="/login" method="POST" onsubmit="return validatePassword(event)" data-xrw="demo-training-token-2026">
-      <!-- Hidden anti-bot marker (see app.py): real kits use these to skip crawlers -->
       <input type="hidden" name="xrw" id="xrw" value="">
 
       <label for="username">USERNAME OR EMAIL</label>

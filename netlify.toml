@@ -1,0 +1,6 @@
+# Static site — no build step. Netlify would otherwise auto-detect Python
+# (requirements.txt) and try to run `pip install -r requirements.txt`,
+# which can hang or fail a deploy for no reason.
+[build]
+  command = "true"
+  publish = "."

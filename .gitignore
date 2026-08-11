@@ -1,0 +1,13 @@
+# Local classroom artifact — contains exactly what a phishing operator would
+# harvest. Never commit or deploy this file. The Flask demo recreates it on
+# first submission; the Netlify (static) demo never writes it.
+captured_credentials.txt
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Netlify
+.netlify/
