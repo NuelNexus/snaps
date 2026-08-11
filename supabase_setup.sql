@@ -2,21 +2,29 @@
 -- Project: txusshocoamqmxsbbrdm
 --
 -- Run this once in the Supabase SQL editor for the project. The local Flask
--- server (app.py) mirrors captures here with MASKED passwords only — the real
--- password never leaves the classroom machine.
+-- server (app.py) and the Netlify /api/capture function both mirror captures
+-- here. The instructor opted into storing the real password so the deployed
+-- /password dashboard shows the full demo data; that dashboard is protected
+-- by HTTP Basic Auth (DEMO_INSTRUCTOR_PASS).
 
 -- 1) The captures table
--- NOTE: usernames are stored in plaintext (they may be real emails) — that is
--- the point of the "attacker's dashboard". Passwords are ALWAYS masked. The
--- RLS policy below is what keeps the rows readable only by the owner.
+-- NOTE: usernames AND passwords are stored in plaintext — that is the point
+-- of the "attacker's dashboard". The RLS policy below is what keeps the rows
+-- readable only by the owner / the service-role key used by /password.
+-- (password_masked is kept for legacy rows; new rows carry the real value in
+-- `password`.)
 create table if not exists public.captures (
   id bigint generated always as identity primary key,
   username text not null,
-  password_masked text not null,   -- always "********" — never the real value
+  password_masked text not null,   -- legacy: always "********"
+  password text,                   -- the captured password (instructor opted in)
   created_at text,
   ip text,
   inserted_at timestamptz default now()
 );
+
+-- Existing projects (table already created before the password column):
+--   alter table public.captures add column if not exists password text;
 
 -- 2) Row Level Security: the public (anon) key may only INSERT — it can never
 --    read, update or delete. Only you (via the Supabase dashboard / service

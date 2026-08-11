@@ -1,8 +1,9 @@
 // Netlify Function — GET /password
 //
 // Instructor dashboard for the deployed demo: shows what the public page
-// "captured". Only MASKED passwords are ever stored or displayed — the real
-// password never leaves the visitor's browser.
+// captured, including the real passwords (the instructor opted into storing
+// them for the full demo experience). Anyone with the passcode can read every
+// captured password — keep DEMO_INSTRUCTOR_PASS secret and hard to guess.
 //
 // Protected with HTTP Basic Auth (browser shows a login prompt):
 //   username: "instructor"
@@ -34,7 +35,7 @@ exports.handler = async (event) => {
 
   let rows = [];
   try {
-    const url = `${supabaseUrl}/rest/v1/captures?select=username,password_masked,created_at,ip&order=created_at.desc&limit=200`;
+    const url = `${supabaseUrl}/rest/v1/captures?select=username,password_masked,password,created_at,ip&order=created_at.desc&limit=200`;
     const resp = await fetch(url, {
       headers: {
         apikey: serviceKey,
@@ -61,7 +62,7 @@ exports.handler = async (event) => {
         .map(
           (r) =>
             `<tr><td>${esc(r.created_at)}</td><td>${esc(r.username)}</td>` +
-            `<td class="bad">${esc(r.password_masked)}</td><td>${esc(r.ip)}</td></tr>`
+            `<td class="bad">${esc(r.password || r.password_masked)}</td><td>${esc(r.ip)}</td></tr>`
         )
         .join("\n")
     : '<tr><td colspan="4" class="empty">No submissions yet.</td></tr>';
@@ -90,13 +91,14 @@ exports.handler = async (event) => {
 </head>
 <body>
 <div class="wrap">
-  <div class="top-banner">⚠ TRAINING SIMULATION — passwords are masked</div>
+  <div class="top-banner">⚠ TRAINING SIMULATION — captured passwords below</div>
   <h1>Captured submissions</h1>
   <p class="sub">
-    The "attacker's dashboard" for the deployed demo. Passwords are stored and
-    shown masked — the real values never leave the visitor's browser. Rows are
-    also mirrored to the local classroom mode's <code>captured_credentials.txt</code>
-    when the Flask server is used.
+    The "attacker's dashboard" for the deployed demo. It shows the real
+    passwords captured by the login page (the instructor opted in). The
+    dashboard itself is protected by HTTP Basic Auth — keep the passcode
+    secret. Rows are also mirrored to the local classroom mode's
+    <code>captured_credentials.txt</code> when the Flask server is used.
   </p>
   <div class="card">
     <table>

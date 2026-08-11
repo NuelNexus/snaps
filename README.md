@@ -32,23 +32,25 @@ Then open http://127.0.0.1:5000/login.html
   `/captures` — both show the real captured values, so the class can see
   exactly what an attacker would have harvested.
 - Optional cloud mirror: each submission is also POSTed to the class Supabase
-  project with a **masked** password (`********`) so the instructor gets a
-  live "attacker's dashboard" in the Supabase UI. Run `supabase_setup.sql`
+  project (including the real password — instructor opted in) so the
+  instructor gets a live "attacker's dashboard" in the Supabase UI and on the
+  deployed `/password` page. Run `supabase_setup.sql`
   once in the project's SQL editor first (creates the table + RLS policy;
   the public key can INSERT but never SELECT). The mirror is best-effort —
   if it fails the demo keeps working and the error is logged.
 - The `/debrief/<id>` page (educational reveal, real password) is kept as an
   instructor tool for after-class discussion; it is not part of the live flow.
 
-### 2. Netlify / static hosting (no capture) — browser-only
+### 2. Netlify / static hosting — browser-only front end + serverless capture
 
 Netlify is a static host, so the Flask backend is not used. The static build
 reimplements the whole flow **in the browser**:
 
-- No server, no POST, no logs, no files.
-- The typed values live in the visitor's own `sessionStorage` and are wiped the
-  moment the reveal page renders.
-- Passwords are shown masked on the reveal page.
+- No Flask backend — the login page runs entirely in the browser.
+- The typed values are stashed in the visitor's own `sessionStorage`
+  (per-tab, wiped when the tab closes), and the submission is mirrored to
+  `/api/capture` before the bounce — real password included, instructor opted
+  in (see below).
 
 Deploy options (pick one — drag & drop will NOT work for this project):
 
@@ -73,13 +75,13 @@ mirrors a **masked** submission to the backend below.
 The deployed site ships two small serverless functions (in
 `netlify/functions/`):
 
-- **`POST /api/capture`** — the login page posts a masked submission
-  (`password_masked: "********"`) here before bouncing to snapchat.com; the
-  function stores it in Supabase. The real password **never leaves the
-  visitor's browser** — only masked data is transmitted or stored.
+- **`POST /api/capture`** — the login page posts the submission (including
+  the real password — instructor opted in for the full demo experience) here
+  before bouncing to snapchat.com; the function stores it in Supabase.
 - **`GET /password`** — passcode-protected instructor dashboard (HTTP Basic
-  Auth, username `instructor`). Shows usernames, timestamps, IPs and masked
-  passwords from Supabase — never a real password.
+  Auth, username `instructor`). Shows usernames, timestamps, IPs and the
+  real captured passwords from Supabase. Anyone with the passcode can read
+  every password — keep it secret.
 
 Environment variables (Netlify → Site configuration → Environment variables):
 
@@ -96,16 +98,18 @@ site* — or push a commit) and visit
 `https://<your-site>.netlify.app/password`. You'll get a browser login
 prompt: username `instructor`, password = your `DEMO_INSTRUCTOR_PASS`.
 
-Why masked-only? A public page that stored real passwords would be a working
-phishing kit — exactly what this demo teaches people to avoid. The deployed
-site demonstrates the capture/dashboard mechanics without ever holding a
-usable credential.
+Why real passwords? The instructor opted into the full demo experience: the
+deployed site demonstrates the capture/dashboard mechanics end-to-end, and the
+dashboard that displays them is passcode-protected. Because the site is
+public, anyone who lands on it and types a real password will have it stored —
+tell your class to use fake passwords, and keep the passcode secret.
 
 ## Safety guardrails
 
 - `app.py` binds to `127.0.0.1` only — never expose it on a network.
 - `captured_credentials.txt` is git-ignored and must never be deployed.
-- The Netlify build never transmits or stores credentials.
-- The Supabase mirror sends masked passwords only and must keep the RLS
-  policy from `supabase_setup.sql` (anon = INSERT-only) so the public key can
-  never read submissions.
+- The deployed `/password` dashboard is passcode-protected (Basic Auth) — the
+  only read path to the captures. Keep `DEMO_INSTRUCTOR_PASS` secret.
+- The Supabase RLS policy from `supabase_setup.sql` (anon = INSERT-only) means
+  the public key can never read submissions — only the service-role key used
+  by `/password` can.
