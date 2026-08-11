@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capture log (instructor) — training demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Avenir Next", "Segoe UI", Arial, sans-serif;
+      background: #f5f5f5; color: #111; line-height: 1.6; padding: 24px 16px 64px;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    .top-banner {
+      background: #1a1a2e; color: #ffd166; text-align: center; font-weight: 700;
+      padding: 10px; border-radius: 10px; margin-bottom: 20px; font-size: 14px;
+    }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .sub { color: #555; font-size: 13px; margin-bottom: 18px; }
+    .card { background: #fff; border-radius: 12px; padding: 18px 20px; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; word-break: break-word; vertical-align: top; }
+    th { color: #777; font-weight: 600; }
+    .empty { color: #999; font-size: 14px; padding: 20px 0; text-align: center; }
+    .bad { color: #c0392b; }
+    .btn {
+      display: inline-block; margin-top: 16px; text-decoration: none;
+      background: #00A6FF; color: #fff; padding: 10px 22px; border-radius: 25px;
+      font-weight: 700; font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Captured submissions</h1>
+    <p class="sub">
+      The "attacker's dashboard" for the demo: exactly what a phishing operator
+      would see. Every submission also lands in <code>captured_credentials.txt</code>
+      in the project folder. Everything stays on this machine only.
+    </p>
+    <div class="card">
+      {% if captures %}
+      <table>
+        <tr><th>Time</th><th>Username / email</th><th>Password</th><th>IP</th></tr>
+        {% for eid, e in captures.items() %}
+        <tr>
+          <td>{{ e.time }}</td>
+          <td>{{ e.username }}</td>
+          <td class="bad">{{ e.password }}</td>
+          <td>{{ e.ip }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% else %}
+      <p class="empty">No submissions yet.</p>
+      {% endif %}
+      <a class="btn" href="/login.html">Back to the demo page</a>
+    </div>
+  </div>
+</body>
+</html>

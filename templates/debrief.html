@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You were phished (training demo)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Avenir Next", "Segoe UI", Arial, sans-serif;
+      background: #f5f5f5; color: #111; line-height: 1.6; padding: 24px 16px 64px;
+    }
+    .wrap { max-width: 640px; margin: 0 auto; }
+    .top-banner {
+      background: #1a1a2e; color: #ffd166; text-align: center; font-weight: 700;
+      padding: 10px; border-radius: 10px; margin-bottom: 20px; font-size: 14px;
+    }
+    h1 { font-size: 22px; margin-bottom: 6px; }
+    .sub { color: #555; font-size: 14px; margin-bottom: 22px; }
+    .card {
+      background: #fff; border-radius: 12px; padding: 18px 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, .08); margin-bottom: 18px;
+    }
+    .card h2 { font-size: 16px; margin-bottom: 12px; color: #00A6FF; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    td, th { text-align: left; padding: 8px 6px; border-bottom: 1px solid #eee; word-break: break-word; }
+    th { color: #777; font-weight: 600; width: 34%; }
+    .bad { color: #c0392b; font-weight: 700; }
+    ul { padding-left: 20px; font-size: 14px; }
+    li { margin-bottom: 8px; }
+    .cta { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      flex: 1; min-width: 150px; text-align: center; text-decoration: none;
+      padding: 12px; border-radius: 25px; font-weight: 700; font-size: 14px;
+    }
+    .btn-primary { background: #00A6FF; color: #fff; }
+    .btn-dark { background: #FFFC00; color: #111; }
+    code { background: #f0f0f0; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap" data-redirect="https://www.snapchat.com/">
+    <div class="top-banner">⚠ TRAINING SIMULATION — no data left this machine</div>
+
+    <h1>This was a phishing page. And you just fell for it.</h1>
+    <p class="sub">
+      Everything you typed went straight to the server that owns the page — not to
+      Snapchat. That is exactly how real phishing works. Here is what an attacker
+      would have captured from your submission:
+    </p>
+
+    <div class="card">
+      <h2>What was captured</h2>
+      <table>
+        <tr><th>Username / email</th><td>{{ entry.username }}</td></tr>
+        <tr><th>Password</th><td class="bad">{{ entry.password }}</td></tr>
+        <tr><th>Timestamp</th><td>{{ entry.time }}</td></tr>
+        <tr><th>IP address</th><td>{{ entry.ip }}</td></tr>
+        <tr><th>User agent</th><td>{{ entry.user_agent }}</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Why the page was convincing</h2>
+      <ul>
+        <li><b>Cloned UI</b> — same logo, colours, fonts and layout as the real service.</li>
+        <li><b>Familiar flow</b> — "Forgot password?", "Save login info" and the back
+          button all behave like the real thing.</li>
+        <li><b>Hidden anti-bot markers</b> — the form sends a hidden field and an
+          <code>X-Requested-With</code> header so naive crawlers are skipped
+          (this demo does the same).</li>
+        <li><b>Redirection</b> — real kits bounce you to the genuine site afterwards,
+          so you never notice you leaked your credentials.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>How to spot it next time</h2>
+      <ul>
+        <li><b>Check the URL bar.</b> The domain is the single best signal.
+          Lookalike domains (e.g. <code>snаpchat.com</code> with a Cyrillic
+          <code>а</code>) are the #1 trick — the letters look identical.</li>
+        <li>A padlock does <b>not</b> mean the site is legit — phishing pages use
+          HTTPS too.</li>
+        <li>Never reuse passwords. If you typed one here, treat it as compromised:
+          change it, and enable two-factor authentication on the real service.</li>
+        <li>When in doubt, type the address yourself instead of clicking links.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>About this demo</h2>
+      <p class="sub" style="margin-bottom: 0;">
+        Notice this page had <b>no warning</b> when you opened it — that is the
+        point. Real phishing pages never announce themselves; the disclosure
+        only comes now, after you already typed your credentials. This demo runs
+        on <code>127.0.0.1</code> (your own machine) and your submission was
+        saved to <code>captured_credentials.txt</code> in the project folder, the
+        same way an attacker saves what they steal. The instructor can also
+        review the full class log at <a href="/captures"><code>/captures</code></a>.
+        In a real attack those credentials would be used against your real
+        accounts — which is exactly why you should never reuse passwords, and
+        why you should change anything you typed here.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>What happens next — the real phishing ending</h2>
+      <p class="sub" style="margin-bottom: 12px;">
+        Real phishing pages bounce you to the genuine website afterwards so you
+        never notice anything wrong. That is exactly what is about to happen:
+        you're being sent to the real <code>snapchat.com</code> in
+        <b><span id="countdown">1</span> seconds</b>. When you land there
+        everything looks normal — and you'd have no idea your credentials were
+        just harvested by the page you came from.
+      </p>
+      <p class="cta">
+        <a class="btn btn-primary" id="goto-snapchat" href="#">Continue to Snapchat now →</a>
+        <a class="btn btn-dark" href="javascript:void(0);" id="stay-here">Stay on this page</a>
+      </p>
+    </div>
+
+    <div class="cta">
+      <a class="btn btn-dark" href="/login.html">Try the demo again</a>
+      <a class="btn btn-dark" href="/captures">Instructor log</a>
+    </div>
+  </div>
+
+  <script>
+    // Educational auto-redirect: the final step of a real phishing attack is
+    // bouncing the victim to the genuine site. The countdown keeps it
+    // deliberate and visible; "Stay on this page" keeps the reveal on screen
+    // for classroom discussion. The target lives in one place: data-redirect.
+    (function () {
+      var redirectTarget = document.querySelector('.wrap').getAttribute('data-redirect');
+      var goBtn = document.getElementById('goto-snapchat');
+      var stayBtn = document.getElementById('stay-here');
+      var countEl = document.getElementById('countdown');
+      var seconds = 1;
+
+      if (goBtn) goBtn.setAttribute('href', redirectTarget);
+
+      var timer = setInterval(function () {
+        seconds -= 1;
+        if (countEl) countEl.textContent = seconds;
+        if (seconds <= 0) {
+          clearInterval(timer);
+          window.location.href = redirectTarget;
+        }
+      }, 10);
+
+      if (stayBtn) {
+        stayBtn.addEventListener('click', function () {
+          clearInterval(timer);
+          if (countEl) countEl.textContent = 'paused';
+          stayBtn.style.display = 'none';
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
