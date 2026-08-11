@@ -59,12 +59,38 @@ Deploy options:
 Static pages: `index.html` → `Acconts.html` → `login.html`. No build step
 needed. The login page auto-detects which build is serving it (via
 `/api/mode`): on Flask it POSTs to `/login` so the capture + instructor views
-work; on static hosting it bounces the visitor straight to snapchat.com with
-nothing transmitted, stored or persisted. The static site has **no** capture,
-no `/password` page and no Supabase sync — those exist only in the local
-classroom mode, on purpose: a public page that stores real passwords would be
-a working phishing kit, which is exactly what this demo teaches people to
-avoid.
+work; on static hosting it bounces the visitor straight to snapchat.com and
+mirrors a **masked** submission to the backend below.
+
+#### The Netlify backend — `/api/capture` and `/password`
+
+The deployed site ships two small serverless functions (in
+`netlify/functions/`):
+
+- **`POST /api/capture`** — the login page posts a masked submission
+  (`password_masked: "********"`) here before bouncing to snapchat.com; the
+  function stores it in Supabase. The real password **never leaves the
+  visitor's browser** — only masked data is transmitted or stored.
+- **`GET /password`** — passcode-protected instructor dashboard (HTTP Basic
+  Auth, username `instructor`). Shows usernames, timestamps, IPs and masked
+  passwords from Supabase — never a real password.
+
+Environment variables (Netlify → Site configuration → Environment variables):
+
+| Variable | Value |
+| --- | --- |
+| `SUPABASE_URL` | `https://txusshocoamqmxsbbrdm.supabase.co` |
+| `SUPABASE_ANON_KEY` | publishable key (`sb_publishable_…`) — INSERT only |
+| `SUPABASE_SERVICE_KEY` | service/secret key (`sb_secret_…`) — **keep secret**; used only by `/password` |
+| `DEMO_INSTRUCTOR_PASS` | passcode for `/password` (username is `instructor`) |
+
+The actual values are in the git-ignored `.env` (see `.env.example`). After
+adding them, redeploy and visit `https://<your-site>.netlify.app/password`.
+
+Why masked-only? A public page that stored real passwords would be a working
+phishing kit — exactly what this demo teaches people to avoid. The deployed
+site demonstrates the capture/dashboard mechanics without ever holding a
+usable credential.
 
 ## Safety guardrails
 

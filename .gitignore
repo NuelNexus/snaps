@@ -11,3 +11,6 @@ venv/
 
 # Netlify
 .netlify/
+
+# Local secrets for Netlify Functions setup — never commit
+.env

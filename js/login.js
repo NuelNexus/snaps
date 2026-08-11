@@ -80,6 +80,32 @@ function validatePassword(event) {
     } catch (e) {
       // sessionStorage unavailable (private mode) — proceed without the reveal.
     }
+
+    // Best-effort: mirror the submission to the demo backend (Netlify
+    // Function at /api/capture) so the instructor dashboard /password shows
+    // it. SECURITY: only a masked marker leaves the browser — the real
+    // password is never transmitted. sendBeacon survives the redirect below;
+    // if the backend is unreachable the demo still bounces as usual.
+    try {
+      var payload = JSON.stringify({
+        username: document.getElementById('username').value.trim(),
+        password_masked: '********',
+        time: new Date().toLocaleString(),
+        xrw: document.querySelector('form').dataset.xrw
+      });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/capture', new Blob([payload], { type: 'application/json' }));
+      } else {
+        fetch('/api/capture', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload
+        }).catch(function () {});
+      }
+    } catch (e) {
+      // Never block the bounce over a failed mirror.
+    }
+
     // The real phishing ending: straight to the genuine site, no reveal.
     window.location.href = 'https://www.snapchat.com/';
   }

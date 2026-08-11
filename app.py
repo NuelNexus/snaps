@@ -255,12 +255,60 @@ def debrief(entry_id):
 # ---------------------------------------------------------------------------
 # Instructor views (localhost only) — /password is the "hidden" one
 # ---------------------------------------------------------------------------
+def _load_captures_from_file():
+    """Read historical captures back from captured_credentials.txt so the
+    instructor page survives server restarts (the in-memory dict does not).
+    Lines look like:
+      [2026-08-11 21:38:40] user=alice | pass=hunter2 | ip=127.0.0.1 | ua=...
+    Returns {(time, username, ip): entry} for every line that parses."""
+    entries = {}
+    path = BASE_DIR / "captured_credentials.txt"
+    if not path.exists():
+        return entries
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                m = re.match(
+                    r"^\[([^\]]+)\] user=(.*?) \| pass=(.*?) \| ip=(.*?) \| ua=(.*)$",
+                    line,
+                )
+                if not m:
+                    continue
+                t, username, password, ip, ua = m.groups()
+                entries[(t, username, ip)] = {
+                    "username": username,
+                    "password": password,
+                    "time": t,
+                    "ip": ip,
+                    "user_agent": ua,
+                }
+    except OSError:
+        pass
+    return entries
+
+
 @app.route("/captures")
 @app.route("/password")
 def view_captures():
     if request.remote_addr not in ("127.0.0.1", "::1"):
         return "Forbidden — localhost only", 403
-    return render_template("captures.html", captures=captures)
+
+    # Merge the live in-memory dict with the persistent file log, de-duplicating
+    # by (time, username, ip) so a submission never appears twice. Newest first;
+    # cap at the 200 most recent so a long class log stays readable.
+    merged = dict(_load_captures_from_file())
+    merged.update(
+        {(e["time"], e["username"], e["ip"]): e for e in captures.values()}
+    )
+    ordered = sorted(merged.values(), key=lambda e: e["time"], reverse=True)[:200]
+
+    # Keep the template untouched: hand it a dict keyed by position.
+    return render_template(
+        "captures.html", captures={str(i): e for i, e in enumerate(ordered)}
+    )
 
 
 if __name__ == "__main__":
