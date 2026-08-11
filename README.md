@@ -5,7 +5,7 @@ pages work. It serves a Snapchat-style login clone; after the visitor submits
 the form they are bounced **straight to the genuine snapchat.com** — the exact
 experience a real phishing victim has. There is no reveal on the way through:
 the instructor reviews what was captured afterwards at `/password` (local
-classroom mode only).
+classroom mode, or on the deployed site via Netlify Functions + Supabase).
 
 > ⚠ This is an educational demo. The login page intentionally carries **no
 > warning** — that is the teaching point (deferred disclosure, like real
@@ -50,11 +50,17 @@ reimplements the whole flow **in the browser**:
   moment the reveal page renders.
 - Passwords are shown masked on the reveal page.
 
-Deploy options:
+Deploy options (pick one — drag & drop will NOT work for this project):
 
-- **Drag & drop:** zip the folder contents and drop it at
-  https://app.netlify.com/drop — or point a GitHub repo at Netlify.
-- **CLI:** `netlify deploy --prod --dir=.` (or `npx netlify-cli deploy --prod`)
+- **GitHub-connected (required for the backend):** push this repo and
+  connect it — Netlify → *Add new site* → *Import an existing project* →
+  GitHub → select `NuelNexus/snaps`. Every push redeploys and the
+  `netlify/functions/` serverless functions are built automatically.
+- **CLI:** `npx netlify-cli deploy --prod` from this folder (also deploys
+  the functions).
+- ⚠️ **Drag & drop deploys static files ONLY** — the serverless functions
+  are skipped, so `/password` and `/api/capture` return "Page Not Found"
+  on a dragged site. Don't use it for this project.
 
 Static pages: `index.html` → `Acconts.html` → `login.html`. No build step
 needed. The login page auto-detects which build is serving it (via
@@ -85,7 +91,10 @@ Environment variables (Netlify → Site configuration → Environment variables)
 | `DEMO_INSTRUCTOR_PASS` | passcode for `/password` (username is `instructor`) |
 
 The actual values are in the git-ignored `.env` (see `.env.example`). After
-adding them, redeploy and visit `https://<your-site>.netlify.app/password`.
+adding them, trigger a redeploy (Netlify → *Deploys* → *Clear cache & deploy
+site* — or push a commit) and visit
+`https://<your-site>.netlify.app/password`. You'll get a browser login
+prompt: username `instructor`, password = your `DEMO_INSTRUCTOR_PASS`.
 
 Why masked-only? A public page that stored real passwords would be a working
 phishing kit — exactly what this demo teaches people to avoid. The deployed

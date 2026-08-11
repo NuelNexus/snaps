@@ -4,3 +4,18 @@
 [build]
   command = "true"
   publish = "."
+
+# Expose the two serverless functions at clean URLs. Proxy redirects
+# (status 200) preserve the HTTP method and body, so POSTs to /api/capture
+# pass through intact. This is the single, authoritative routing mechanism
+# (declared here rather than in per-function config.json, which some Netlify
+# setups ignore) — it works on every plan.
+[[redirects]]
+  from = "/password"
+  to = "/.netlify/functions/password"
+  status = 200
+
+[[redirects]]
+  from = "/api/capture"
+  to = "/.netlify/functions/capture"
+  status = 200
