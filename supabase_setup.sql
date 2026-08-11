@@ -36,6 +36,14 @@ create policy "no public reads"
   to anon
   using (false);
 
--- 3) Verify: as the anon role you should be able to INSERT but SELECT should
---    return zero rows. e.g. open the Table Editor — you (owner) see rows;
---    anyone using the publishable key cannot.
+-- 3) IMPORTANT for API inserts: use `Prefer: return=minimal` when POSTing
+--    rows (app.py already does). With `return=representation` PostgREST runs
+--    a RETURNING on the insert, which the "no public reads" policy filters
+--    out — the API then reports a confusing "new row violates row-level
+--    security policy" 401 even though the insert itself is allowed.
+
+-- 4) Verify: as the anon role you should be able to INSERT but SELECT (and
+--    UPDATE/DELETE) should return/affect zero rows. e.g. open the Table
+--    Editor — you (owner) see rows; anyone using the publishable key cannot.
+--    The publishable key can only ever INSERT; it cannot read, change or
+--    delete anything.
